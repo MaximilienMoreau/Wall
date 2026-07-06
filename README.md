@@ -134,3 +134,4 @@ components/
   déploiement multi-instance.
 - Suppression définitive d'un événement (et de toutes ses données) disponible
   depuis l'admin.
+# Wall
