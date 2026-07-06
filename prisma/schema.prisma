@@ -1,0 +1,89 @@
+// Schéma Prisma — Wall
+// En dev : SQLite. En prod : changer `provider` en "postgresql" et adapter DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum QuestionStatus {
+  PENDING
+  APPROVED
+  HIDDEN
+  ANSWERED
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  adminToken  String
+
+  isOpen Boolean @default(true)
+
+  // Autoriser les questions sans prénom
+  allowAnonymous Boolean @default(true)
+  // Auto-approbation des nouvelles questions (sinon file de modération)
+  autoApprove Boolean @default(true)
+  // Regroupement IA automatique périodique (toutes les 2 min, géré côté client admin)
+  autoClusterEnabled Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  closesAt  DateTime?
+
+  questions QuestionGroup[]
+  Question  Question[]
+
+  @@map("events")
+}
+
+model Question {
+  id         String         @id @default(cuid())
+  eventId    String
+  content    String
+  authorName String?
+  status     QuestionStatus @default(PENDING)
+  votes      Int            @default(0)
+  groupId    String?
+  createdAt  DateTime       @default(now())
+
+  event Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group QuestionGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  Vote  Vote[]
+
+  @@index([eventId])
+  @@index([groupId])
+  @@map("questions")
+}
+
+model QuestionGroup {
+  id                  String   @id @default(cuid())
+  eventId             String
+  label               String
+  synthesizedQuestion String
+  order               Int      @default(0)
+  createdAt           DateTime @default(now())
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@index([eventId])
+  @@map("question_groups")
+}
+
+model Vote {
+  id          String   @id @default(cuid())
+  questionId  String
+  fingerprint String
+  createdAt   DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, fingerprint])
+  @@map("votes")
+}
