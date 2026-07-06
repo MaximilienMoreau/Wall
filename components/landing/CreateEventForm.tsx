@@ -16,9 +16,11 @@ export function CreateEventForm() {
   const [copied, setCopied] = useState<"link" | null>(null);
   const { showToast } = useToast();
 
+  const MIN_TITLE_LENGTH = 3;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!title.trim() || submitting) return;
+    if (title.trim().length < MIN_TITLE_LENGTH || submitting) return;
     setSubmitting(true);
     try {
       const res = await fetch("/api/events", {
@@ -28,7 +30,8 @@ export function CreateEventForm() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        showToast(data?.error || "Impossible de créer l'événement.", "error");
+        const fieldError = data?.details?.fieldErrors?.title?.[0] || data?.details?.fieldErrors?.description?.[0];
+        showToast(fieldError || data?.error || "Impossible de créer l'événement.", "error");
         return;
       }
       const data = await res.json();
@@ -82,11 +85,13 @@ export function CreateEventForm() {
           id="event-title"
           type="text"
           required
+          minLength={MIN_TITLE_LENGTH}
           value={title}
           onChange={(e) => setTitle(e.target.value.slice(0, 120))}
           placeholder="AI FIRST Meetup"
           className="w-full rounded-lg border border-neutral-300 p-2.5 text-neutral-900 focus:border-accent"
         />
+        <p className="mt-1 text-xs text-neutral-400">{MIN_TITLE_LENGTH} caractères minimum</p>
       </div>
       <div className="mt-3">
         <label htmlFor="event-description" className="mb-1 block text-sm font-medium text-neutral-700">
@@ -101,7 +106,13 @@ export function CreateEventForm() {
           className="w-full resize-none rounded-lg border border-neutral-300 p-2.5 text-neutral-900 focus:border-accent"
         />
       </div>
-      <Button type="submit" size="lg" loading={submitting} disabled={!title.trim()} className="mt-4 w-full">
+      <Button
+        type="submit"
+        size="lg"
+        loading={submitting}
+        disabled={title.trim().length < MIN_TITLE_LENGTH}
+        className="mt-4 w-full"
+      >
         Créer l&apos;événement
       </Button>
     </form>
