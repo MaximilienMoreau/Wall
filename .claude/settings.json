@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://the-walls-9nueg3pz3-maximilienmoreau.vercel.app/\" -w \"\\\\nHTTP_STATUS=%{http_code}\\\\n\" -i)",
+      "Bash(vercel whoami *)",
+      "Bash(vercel project *)"
+    ]
+  }
+}

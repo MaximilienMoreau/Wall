@@ -10,7 +10,7 @@ et affiche un mode présentateur plein écran.
 
 - Next.js 16 (App Router) + TypeScript + Tailwind CSS 4
 - Composants maison (pas de librairie UI lourde) + `lucide-react` pour les icônes
-- Prisma 6 + SQLite en dev (compatible PostgreSQL en prod, changement de provider uniquement)
+- Prisma 6 + PostgreSQL (Neon), même base en dev et en prod
 - `@anthropic-ai/sdk` (`claude-sonnet-4-6`) pour le clustering et la reformulation
 - Rafraîchissement temps réel par polling léger (4–5 s, `hooks/usePolling.ts`), pas de WebSocket
 - `qrcode` pour la génération de QR codes, Zod pour la validation des inputs API
@@ -29,7 +29,7 @@ cp .env.example .env.local   # puis retire ANTHROPIC_API_KEY de .env.local si tu
 
 ```env
 # .env.local
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://..."   # une base Postgres (Neon, Supabase, Railway, etc.)
 
 # .env
 ANTHROPIC_API_KEY="sk-ant-..."
@@ -43,7 +43,7 @@ renverra une erreur explicite (503).
 
 ```bash
 npm install
-npx prisma migrate dev   # crée prisma/dev.db et applique le schéma
+npx prisma migrate dev   # applique le schéma sur la base pointée par DATABASE_URL
 npx prisma db seed       # événement de démo "AI FIRST Meetup" avec ~15 questions
 ```
 
@@ -55,19 +55,17 @@ npm run dev
 
 Ouvre [http://localhost:3000](http://localhost:3000).
 
-### Passer en production avec PostgreSQL
+### Déploiement (Vercel)
 
-Dans `prisma/schema.prisma`, change simplement le provider :
-
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-Puis mets à jour `DATABASE_URL` avec une URL `postgresql://...` et relance
-`npx prisma migrate deploy`.
+- Aucun fichier `.env*` n'est déployé (ignorés par `.gitignore` et `.vercelignore`) :
+  configure `DATABASE_URL` et `ANTHROPIC_API_KEY` via `vercel env add` (ou le
+  dashboard) pour Production, Preview et Development.
+- `package.json` a un script `postinstall: prisma generate` : sans ça, le build
+  peut réutiliser un Prisma Client mis en cache par un déploiement précédent,
+  généré contre un schéma différent, et planter au runtime avec une erreur de
+  validation de datasource.
+- Le provider Postgres évite l'écueil du système de fichiers éphémère des
+  fonctions serverless (SQLite n'y fonctionne pas).
 
 ## Parcours de démo (5 étapes)
 
@@ -134,4 +132,3 @@ components/
   déploiement multi-instance.
 - Suppression définitive d'un événement (et de toutes ses données) disponible
   depuis l'admin.
-# Wall
