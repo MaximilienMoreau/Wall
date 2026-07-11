@@ -1,0 +1,6 @@
+# Les vraies valeurs vivent dans les env vars Vercel (vercel env add), jamais
+# dans le bundle de déploiement. Sans dépôt git, le CLI n'a pas de .gitignore
+# à respecter pour filtrer l'upload : ce fichier joue ce rôle explicitement.
+.env
+.env.local
+.env*.local
