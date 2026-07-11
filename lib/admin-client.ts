@@ -45,7 +45,12 @@ export async function fetchAdminState(slug: string, token: string): Promise<Admi
 export async function updateEventSettings(
   slug: string,
   token: string,
-  patch: Partial<Pick<AdminEventDTO, "title" | "description" | "isOpen" | "allowAnonymous" | "autoApprove" | "autoClusterEnabled">>
+  patch: Partial<
+    Pick<
+      AdminEventDTO,
+      "title" | "description" | "isOpen" | "allowAnonymous" | "autoApprove" | "autoClusterEnabled" | "closesAt"
+    >
+  >
 ) {
   const res = await adminFetch(`/api/events/${slug}`, token, {
     method: "PATCH",

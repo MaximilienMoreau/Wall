@@ -21,7 +21,7 @@ export const questionStatusEnum = z.enum(["PENDING", "APPROVED", "HIDDEN", "ANSW
 
 export const moderateQuestionSchema = z.object({
   status: questionStatusEnum.optional(),
-  groupId: z.string().nullable().optional(),
+  groupId: z.string().min(1).nullable().optional(),
 });
 
 export const updateEventSchema = z.object({
@@ -31,6 +31,7 @@ export const updateEventSchema = z.object({
   allowAnonymous: z.boolean().optional(),
   autoApprove: z.boolean().optional(),
   autoClusterEnabled: z.boolean().optional(),
+  closesAt: z.string().datetime().nullable().optional(),
 });
 
 export const updateGroupSchema = z.object({

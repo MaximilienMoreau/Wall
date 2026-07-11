@@ -1,6 +1,14 @@
 import { Toggle } from "@/components/ui/Toggle";
 import type { AdminEventDTO } from "@/lib/types";
 
+/** ISO string -> valeur locale pour <input type="datetime-local"> (pas de secondes/fuseau). */
+function toDatetimeLocalValue(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function SettingsPanel({
   event,
   onChange,
@@ -8,6 +16,8 @@ export function SettingsPanel({
   event: AdminEventDTO;
   onChange: (patch: Partial<AdminEventDTO>) => void;
 }) {
+  const closesAtPassed = event.closesAt !== null && new Date(event.closesAt) <= new Date();
+
   return (
     <div className="divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
       <Toggle
@@ -34,6 +44,37 @@ export function SettingsPanel({
         label="Regroupement IA automatique"
         description="Relance le regroupement toutes les 2 minutes tant que cette page admin est ouverte."
       />
+      <div className="flex items-start justify-between gap-4 py-2">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium text-neutral-800">Fermeture automatique</span>
+          <span className="block text-xs text-neutral-500">
+            {closesAtPassed
+              ? "Date dépassée : les soumissions sont fermées, même si le bascule ci-dessus est actif."
+              : "Optionnel. Une fois cette date passée, les soumissions se ferment automatiquement."}
+          </span>
+        </span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <input
+            type="datetime-local"
+            value={toDatetimeLocalValue(event.closesAt)}
+            onChange={(e) => {
+              const value = e.target.value;
+              onChange({ closesAt: value ? new Date(value).toISOString() : null });
+            }}
+            aria-label="Date de fermeture automatique"
+            className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-700"
+          />
+          {event.closesAt && (
+            <button
+              type="button"
+              onClick={() => onChange({ closesAt: null })}
+              className="text-xs text-neutral-400 hover:text-neutral-700"
+            >
+              Retirer la date
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
