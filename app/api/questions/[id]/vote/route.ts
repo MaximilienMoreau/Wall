@@ -87,13 +87,24 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     return NextResponse.json({ votes: question.votes, wasVoted: false });
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    await tx.vote.delete({ where: { id: existingVote.id } });
-    return tx.question.update({
-      where: { id },
-      data: { votes: { decrement: 1 } },
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.vote.delete({ where: { id: existingVote.id } });
+      return tx.question.update({
+        where: { id },
+        data: { votes: { decrement: 1 } },
+      });
     });
-  });
-
-  return NextResponse.json({ votes: Math.max(updated.votes, 0), wasVoted: true });
+    return NextResponse.json({ votes: Math.max(updated.votes, 0), wasVoted: true });
+  } catch (err: unknown) {
+    const isAlreadyDeleted =
+      typeof err === "object" && err !== null && "code" in err && err.code === "P2025";
+    if (isAlreadyDeleted) {
+      // Déjà retiré entre-temps (double clic concurrent) : idempotent, pas d'erreur.
+      const current = await prisma.question.findUnique({ where: { id } });
+      return NextResponse.json({ votes: Math.max(current?.votes ?? 0, 0), wasVoted: true });
+    }
+    console.error("Erreur retrait de vote", err);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
 }
