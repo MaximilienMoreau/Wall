@@ -37,7 +37,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
       slug: event.slug,
       title: event.title,
       description: event.description,
-      isOpen: event.isOpen,
+      // État effectif : ouvert seulement si le bascule manuel l'est ET que la date
+      // de fermeture (si définie) n'est pas dépassée.
+      isOpen: event.isOpen && (!event.closesAt || event.closesAt > new Date()),
       allowAnonymous: event.allowAnonymous,
       closesAt: event.closesAt,
     },
@@ -81,9 +83,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     );
   }
 
+  const { closesAt, ...rest } = parsed.data;
+
   const updated = await prisma.event.update({
     where: { id: event.id },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(closesAt !== undefined ? { closesAt: closesAt ? new Date(closesAt) : null } : {}),
+    },
   });
 
   return NextResponse.json({

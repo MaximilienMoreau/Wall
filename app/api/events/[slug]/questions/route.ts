@@ -15,7 +15,8 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!event) {
     return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
   }
-  if (!event.isOpen) {
+  const isClosed = !event.isOpen || (event.closesAt !== null && event.closesAt <= new Date());
+  if (isClosed) {
     return NextResponse.json({ error: "Les soumissions sont fermées pour cet événement" }, { status: 403 });
   }
 
