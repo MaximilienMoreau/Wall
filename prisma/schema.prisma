@@ -1,12 +1,12 @@
 // Schéma Prisma — Wall
-// En dev : SQLite. En prod : changer `provider` en "postgresql" et adapter DATABASE_URL.
+// PostgreSQL (Neon) en dev comme en prod, via DATABASE_URL.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
