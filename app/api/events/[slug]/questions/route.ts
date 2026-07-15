@@ -44,6 +44,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
   }
 
+  // Vérifié avant le check de doublon : sinon spammer la même question en boucle
+  // ne déclenche jamais la limite (le doublon renvoie toujours avant d'y arriver).
+  const rate = checkRateLimit(`question:${event.id}:${fingerprint}`, RATE_LIMIT_WINDOW_MS);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      {
+        error: "Merci de patienter avant d'envoyer une nouvelle question",
+        retryAfterMs: rate.retryAfterMs,
+      },
+      { status: 429 }
+    );
+  }
+
   // Bloc 1 (Socle) : deux questions au texte identique ne coexistent pas sur le mur.
   // "Identique" ignore la casse, les accents et la ponctuation (à trancher, cf. brief).
   const normalizedContent = normalizeForDuplicateCheck(content);
@@ -58,17 +71,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json(
       { error: "Cette question a déjà été posée sur ce mur." },
       { status: 409 }
-    );
-  }
-
-  const rate = checkRateLimit(`question:${event.id}:${fingerprint}`, RATE_LIMIT_WINDOW_MS);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      {
-        error: "Merci de patienter avant d'envoyer une nouvelle question",
-        retryAfterMs: rate.retryAfterMs,
-      },
-      { status: 429 }
     );
   }
 

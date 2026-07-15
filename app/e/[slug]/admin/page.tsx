@@ -11,6 +11,7 @@ import { getStoredAdminToken, storeAdminToken } from "@/lib/client-storage";
 import {
   AdminApiError,
   deleteEvent,
+  deleteGroup,
   fetchAdminState,
   moderateQuestion,
   triggerCluster,
@@ -208,6 +209,16 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteGroup(id: string) {
+    try {
+      await deleteGroup(id, token!);
+      showToast("Thème supprimé.", "success");
+      refetch();
+    } catch {
+      showToast("Échec de la suppression du thème.", "error");
+    }
+  }
+
   async function handleCluster() {
     setClustering(true);
     try {
@@ -283,6 +294,7 @@ export default function AdminPage() {
             onRename={handleRenameGroup}
             onEditSynthesis={handleEditSynthesis}
             onReorder={handleReorder}
+            onDelete={handleDeleteGroup}
           />
         </section>
 

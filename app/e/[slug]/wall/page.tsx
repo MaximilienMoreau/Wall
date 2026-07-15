@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { usePolling } from "@/hooks/usePolling";
+import { useToast } from "@/components/ui/Toast";
 import { getStoredAdminToken, storeAdminToken } from "@/lib/client-storage";
 import { moderateQuestion } from "@/lib/admin-client";
 import type { PublicEventDTO, QuestionGroupDTO } from "@/lib/types";
@@ -20,6 +21,7 @@ export default function WallPage() {
   const { slug } = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const [token, setToken] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [justAnswered, setJustAnswered] = useState(false);
@@ -75,10 +77,14 @@ export default function WallPage() {
     if (!token || !current) return;
     const targets = current.questions.filter((q) => q.status === "APPROVED");
     if (targets.length === 0) return;
-    await Promise.all(targets.map((q) => moderateQuestion(q.id, token, { status: "ANSWERED" })));
-    setJustAnswered(true);
-    setTimeout(() => setJustAnswered(false), 1200);
-  }, [token, current]);
+    try {
+      await Promise.all(targets.map((q) => moderateQuestion(q.id, token, { status: "ANSWERED" })));
+      setJustAnswered(true);
+      setTimeout(() => setJustAnswered(false), 1200);
+    } catch {
+      showToast("Échec du marquage comme répondu.", "error");
+    }
+  }, [token, current, showToast]);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
