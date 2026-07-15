@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import type { AdminEventDTO } from "@/lib/types";
 
@@ -18,8 +21,50 @@ export function SettingsPanel({
 }) {
   const closesAtPassed = event.closesAt !== null && new Date(event.closesAt) <= new Date();
 
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description ?? "");
+
+  function commitTitle() {
+    const trimmed = title.trim();
+    if (trimmed && trimmed !== event.title) onChange({ title: trimmed });
+    else setTitle(event.title);
+  }
+
+  function commitDescription() {
+    const trimmed = description.trim();
+    if (trimmed !== (event.description ?? "")) onChange({ description: trimmed || null });
+  }
+
   return (
     <div className="divide-y divide-neutral-100 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 pb-4">
+        <div>
+          <label htmlFor="event-title" className="mb-1 block text-sm font-medium text-neutral-700">
+            Titre
+          </label>
+          <input
+            id="event-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value.slice(0, 120))}
+            onBlur={commitTitle}
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-accent"
+          />
+        </div>
+        <div>
+          <label htmlFor="event-description" className="mb-1 block text-sm font-medium text-neutral-700">
+            Description
+          </label>
+          <textarea
+            id="event-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+            onBlur={commitDescription}
+            rows={2}
+            className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-accent"
+          />
+        </div>
+      </div>
       <Toggle
         checked={event.isOpen}
         onChange={(v) => onChange({ isOpen: v })}

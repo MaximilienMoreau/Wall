@@ -83,6 +83,10 @@ export async function updateGroup(
   return res.json();
 }
 
+export async function deleteGroup(id: string, token: string) {
+  await adminFetch(`/api/groups/${id}`, token, { method: "DELETE" });
+}
+
 export async function triggerCluster(slug: string, token: string) {
   const res = await adminFetch(`/api/events/${slug}/cluster`, token, { method: "POST" });
   return res.json();

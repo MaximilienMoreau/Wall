@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUp, ArrowDown, Layers } from "lucide-react";
+import { ArrowUp, ArrowDown, Layers, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { AdminGroupDTO } from "@/lib/admin-client";
 
@@ -42,13 +42,16 @@ export function GroupsPanel({
   onRename,
   onEditSynthesis,
   onReorder,
+  onDelete,
 }: {
   groups: AdminGroupDTO[];
   onRename: (id: string, label: string) => void;
   onEditSynthesis: (id: string, synthesizedQuestion: string) => void;
   onReorder: (id: string, direction: "up" | "down") => void;
+  onDelete: (id: string) => void;
 }) {
   const sorted = [...groups].sort((a, b) => a.order - b.order);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   if (sorted.length === 0) {
     return (
@@ -100,6 +103,38 @@ export function GroupsPanel({
                 multiline
               />
               <p className="px-2 text-xs text-neutral-400">{group.questions.length} question(s)</p>
+            </div>
+            <div className="shrink-0 pt-1">
+              {confirmingId === group.id ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDelete(group.id);
+                      setConfirmingId(null);
+                    }}
+                    className="text-xs font-medium text-red-600 hover:text-red-800"
+                  >
+                    Confirmer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(null)}
+                    className="text-xs text-neutral-400 hover:text-neutral-700"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`Supprimer le thème ${group.label}`}
+                  onClick={() => setConfirmingId(group.id)}
+                  className="text-neutral-400 hover:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </li>

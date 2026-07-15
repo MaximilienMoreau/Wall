@@ -45,3 +45,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   return NextResponse.json({ group: updated });
 }
+
+// DELETE /api/groups/[id] : supprime un thème (admin). Les questions qu'il contenait
+// sont conservées mais dégroupées (FK onDelete: SetNull), jamais supprimées.
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const { id } = await params;
+
+  const group = await prisma.questionGroup.findUnique({
+    where: { id },
+    include: { event: true },
+  });
+  if (!group) {
+    return NextResponse.json({ error: "Groupe introuvable" }, { status: 404 });
+  }
+
+  const token = getAdminTokenFromRequest(req);
+  if (!isValidAdminToken(token, group.event.adminToken)) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+
+  await prisma.questionGroup.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
