@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { submitQuestionSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { normalizeForDuplicateCheck } from "@/lib/text";
+import { withLock } from "@/lib/mutex";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -59,29 +60,35 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // Bloc 1 (Socle) : deux questions au texte identique ne coexistent pas sur le mur.
   // "Identique" ignore la casse, les accents et la ponctuation (à trancher, cf. brief).
-  const normalizedContent = normalizeForDuplicateCheck(content);
-  const activeQuestions = await prisma.question.findMany({
-    where: { eventId: event.id, status: { not: "HIDDEN" } },
-    select: { content: true },
+  // Le check-then-create est sérialisé par événement (withLock) pour éviter qu'une
+  // double soumission concurrente identique passe le check de doublon deux fois.
+  const question = await withLock(`question-create:${event.id}`, async () => {
+    const normalizedContent = normalizeForDuplicateCheck(content);
+    const activeQuestions = await prisma.question.findMany({
+      where: { eventId: event.id, status: { not: "HIDDEN" } },
+      select: { content: true },
+    });
+    const isDuplicate = activeQuestions.some(
+      (q) => normalizeForDuplicateCheck(q.content) === normalizedContent
+    );
+    if (isDuplicate) return null;
+
+    return prisma.question.create({
+      data: {
+        eventId: event.id,
+        content,
+        authorName,
+        status: event.autoApprove ? "APPROVED" : "PENDING",
+      },
+    });
   });
-  const isDuplicate = activeQuestions.some(
-    (q) => normalizeForDuplicateCheck(q.content) === normalizedContent
-  );
-  if (isDuplicate) {
+
+  if (!question) {
     return NextResponse.json(
       { error: "Cette question a déjà été posée sur ce mur." },
       { status: 409 }
     );
   }
-
-  const question = await prisma.question.create({
-    data: {
-      eventId: event.id,
-      content,
-      authorName,
-      status: event.autoApprove ? "APPROVED" : "PENDING",
-    },
-  });
 
   return NextResponse.json({ question }, { status: 201 });
 }

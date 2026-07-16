@@ -10,7 +10,12 @@ const STATUS_LABEL: Record<Question["status"], string> = {
 };
 
 function csvEscape(value: string | number): string {
-  const str = String(value);
+  let str = String(value);
+  // Anti-injection de formule : Excel/Sheets interprètent une cellule commençant
+  // par =, +, -, @ ou une tabulation comme une formule à exécuter à l'ouverture.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

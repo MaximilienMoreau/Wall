@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { voteSchema } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
+
+const VOTE_RATE_LIMIT_WINDOW_MS = 1_000;
+
+// Seules les questions visibles publiquement (cf. GET /api/events/[slug]) sont votables.
+const VOTABLE_STATUSES = new Set(["APPROVED", "ANSWERED"]);
 
 // POST /api/questions/[id]/vote : upvote. Anti double-vote via contrainte unique (questionId, fingerprint).
 export async function POST(req: NextRequest, { params }: Params) {
@@ -11,6 +17,12 @@ export async function POST(req: NextRequest, { params }: Params) {
   const question = await prisma.question.findUnique({ where: { id } });
   if (!question) {
     return NextResponse.json({ error: "Question introuvable" }, { status: 404 });
+  }
+  if (!VOTABLE_STATUSES.has(question.status)) {
+    return NextResponse.json(
+      { error: "Cette question n'est pas ouverte au vote" },
+      { status: 403 }
+    );
   }
 
   let body: unknown;
@@ -29,6 +41,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const { fingerprint } = parsed.data;
+
+  const rate = checkRateLimit(`vote:${id}:${fingerprint}`, VOTE_RATE_LIMIT_WINDOW_MS);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Merci de patienter avant de revoter", retryAfterMs: rate.retryAfterMs },
+      { status: 429 }
+    );
+  }
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
@@ -77,6 +97,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   const { fingerprint } = parsed.data;
+
+  const rate = checkRateLimit(`unvote:${id}:${fingerprint}`, VOTE_RATE_LIMIT_WINDOW_MS);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Merci de patienter avant de retirer ton soutien", retryAfterMs: rate.retryAfterMs },
+      { status: 429 }
+    );
+  }
 
   const existingVote = await prisma.vote.findUnique({
     where: { questionId_fingerprint: { questionId: id, fingerprint } },

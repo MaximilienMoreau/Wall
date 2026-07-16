@@ -63,7 +63,10 @@ export function getStoredAdminToken(eventSlug: string): string | null {
 export function storeAdminToken(eventSlug: string, token: string): void {
   if (typeof document === "undefined") return;
   const maxAgeSeconds = 60 * 60 * 24 * 30; // 30 jours
+  // Secure uniquement en HTTPS : un cookie Secure est silencieusement rejeté par le
+  // navigateur en HTTP (hors localhost), donc on ne l'ajoute pas en dev non-sécurisé.
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = `${adminCookieName(eventSlug)}=${encodeURIComponent(
     token
-  )}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
+  )}; path=/; max-age=${maxAgeSeconds}; samesite=lax${secure}`;
 }
