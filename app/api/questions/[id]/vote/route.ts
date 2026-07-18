@@ -80,6 +80,12 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (!question) {
     return NextResponse.json({ error: "Question introuvable" }, { status: 404 });
   }
+  if (!VOTABLE_STATUSES.has(question.status)) {
+    return NextResponse.json(
+      { error: "Cette question n'est pas ouverte au vote" },
+      { status: 403 }
+    );
+  }
 
   let body: unknown;
   try {

@@ -36,8 +36,8 @@ model Event {
   createdAt DateTime  @default(now())
   closesAt  DateTime?
 
-  questions QuestionGroup[]
-  Question  Question[]
+  groups    QuestionGroup[]
+  questions Question[]
 
   @@map("events")
 }
