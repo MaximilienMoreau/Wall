@@ -18,7 +18,7 @@ export function ClusterPanel({
         <p className="text-sm font-medium text-neutral-800">Regroupement par IA</p>
         <p className="text-xs text-neutral-500">
           {autoEnabled
-            ? "Le regroupement automatique est actif (toutes les 2 min)."
+            ? "Le regroupement automatique est actif (toutes les 2 min tant que cette page admin reste ouverte)."
             : "Regroupe les questions approuvées en thèmes similaires."}
         </p>
       </div>
