@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getFingerprint,
   getVotedQuestionIds,
@@ -23,6 +23,13 @@ export function VoteButton({
   const [voted, setVoted] = useState(() => getVotedQuestionIds(eventSlug).includes(questionId));
   const [pending, setPending] = useState(false);
   const { showToast } = useToast();
+
+  // Resynchronise avec les votes des autres participants remontés par le polling.
+  // Ignoré pendant une action locale en cours pour ne pas écraser la mise à jour optimiste.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!pending) setCount(votes);
+  }, [votes, pending]);
 
   // Bloc 1 (Socle) : soutenir une question incrémente son compteur.
   async function vote() {

@@ -206,6 +206,9 @@ export default function AdminPage() {
       refetch();
     } catch {
       showToast("Échec du réordonnancement.", "error");
+      // L'un des deux appels a pu passer et pas l'autre : on resynchronise sur l'état
+      // serveur réel plutôt que de laisser l'UI locale désynchronisée.
+      refetch();
     }
   }
 

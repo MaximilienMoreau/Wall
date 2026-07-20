@@ -52,12 +52,18 @@ model Question {
   groupId    String?
   createdAt  DateTime       @default(now())
 
+  // Même identifiant anonyme que pour les votes (cf. Vote.fingerprint), utilisé
+  // uniquement côté serveur pour le rate-limiting anti-spam à la soumission.
+  // Jamais exposé via l'API : omis par défaut au niveau du client Prisma (lib/prisma.ts).
+  fingerprint String?
+
   event Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   group QuestionGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   Vote  Vote[]
 
   @@index([eventId])
   @@index([groupId])
+  @@index([eventId, fingerprint, createdAt])
   @@map("questions")
 }
 

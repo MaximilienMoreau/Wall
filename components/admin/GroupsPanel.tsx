@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Layers, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { AdminGroupDTO } from "@/lib/admin-client";
@@ -19,8 +19,17 @@ function EditableField({
   multiline?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+
+  // Resynchronise avec la valeur remontée par le polling (ex: renommage par le
+  // clustering IA) tant que le champ n'est pas en cours d'édition.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!focused) setDraft(value);
+  }, [value, focused]);
 
   function commit() {
+    setFocused(false);
     const trimmed = draft.trim();
     if (trimmed && trimmed !== value) onSave(trimmed);
     else setDraft(value);
@@ -30,6 +39,7 @@ function EditableField({
     value: draft,
     "aria-label": ariaLabel,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+    onFocus: () => setFocused(true),
     onBlur: commit,
     className: `w-full rounded-lg border border-transparent bg-transparent px-2 py-1 hover:border-neutral-200 focus:border-accent focus:bg-white ${className ?? ""}`,
   };
