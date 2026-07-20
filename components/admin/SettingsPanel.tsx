@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import type { AdminEventDTO } from "@/lib/types";
 
@@ -23,14 +23,30 @@ export function SettingsPanel({
 
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description ?? "");
+  const [titleFocused, setTitleFocused] = useState(false);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+
+  // Resynchronise avec les valeurs remontées par le polling (ex: modifiées depuis
+  // un autre onglet admin) tant que le champ correspondant n'est pas en cours d'édition.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!titleFocused) setTitle(event.title);
+  }, [event.title, titleFocused]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!descriptionFocused) setDescription(event.description ?? "");
+  }, [event.description, descriptionFocused]);
 
   function commitTitle() {
+    setTitleFocused(false);
     const trimmed = title.trim();
     if (trimmed && trimmed !== event.title) onChange({ title: trimmed });
     else setTitle(event.title);
   }
 
   function commitDescription() {
+    setDescriptionFocused(false);
     const trimmed = description.trim();
     if (trimmed !== (event.description ?? "")) onChange({ description: trimmed || null });
   }
@@ -47,6 +63,7 @@ export function SettingsPanel({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, 120))}
+            onFocus={() => setTitleFocused(true)}
             onBlur={commitTitle}
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-accent"
           />
@@ -59,6 +76,7 @@ export function SettingsPanel({
             id="event-description"
             value={description}
             onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+            onFocus={() => setDescriptionFocused(true)}
             onBlur={commitDescription}
             rows={2}
             className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 focus:border-accent"

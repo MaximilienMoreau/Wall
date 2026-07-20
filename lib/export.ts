@@ -1,6 +1,9 @@
 import type { Event, Question, QuestionGroup } from "@prisma/client";
 
-type ExportGroup = QuestionGroup & { questions: Question[] };
+// `fingerprint` est omis par défaut par le client Prisma (cf. lib/prisma.ts) : jamais
+// présent sur les questions manipulées ici, ni utile pour un export destiné à l'organisateur.
+type ExportQuestion = Omit<Question, "fingerprint">;
+type ExportGroup = QuestionGroup & { questions: ExportQuestion[] };
 
 const STATUS_LABEL: Record<Question["status"], string> = {
   PENDING: "En attente",
@@ -23,7 +26,7 @@ function csvEscape(value: string | number): string {
 }
 
 /** Export CSV : une table questions (avec leur groupe) suivie d'une table groupes. */
-export function toCsv(questions: Question[], groups: ExportGroup[]): string {
+export function toCsv(questions: ExportQuestion[], groups: ExportGroup[]): string {
   const groupLabelById = new Map(groups.map((g) => [g.id, g.label]));
 
   const questionRows = [
@@ -51,7 +54,7 @@ export function toCsv(questions: Question[], groups: ExportGroup[]): string {
 }
 
 /** Export Markdown : lisible, pensé pour être partagé après l'événement. */
-export function toMarkdown(event: Event, questions: Question[], groups: ExportGroup[]): string {
+export function toMarkdown(event: Event, questions: ExportQuestion[], groups: ExportGroup[]): string {
   const lines: string[] = [];
   lines.push(`# ${event.title}`);
   if (event.description) lines.push(`\n${event.description}`);

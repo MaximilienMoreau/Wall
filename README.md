@@ -14,6 +14,8 @@ et affiche un mode présentateur plein écran.
 - `@anthropic-ai/sdk` (`claude-sonnet-4-6`) pour le clustering et la reformulation
 - Rafraîchissement temps réel par polling léger (4–5 s, `hooks/usePolling.ts`), pas de WebSocket
 - `qrcode` pour la génération de QR codes, Zod pour la validation des inputs API
+- Anti-doublon / anti-spam via verrou consultatif Postgres (pas de dépendance
+  externe type Redis, cf. « Sécurité & confidentialité »)
 
 ## Setup
 
@@ -123,12 +125,25 @@ components/
 ## Sécurité & confidentialité
 
 - Aucune donnée personnelle obligatoire : prénom optionnel, pas d'email, pas de compte.
-- Le fingerprint anti-double-vote est un UUID aléatoire stocké en localStorage
-  (pas de fingerprinting navigateur).
+- Le fingerprint anti-double-vote et anti-spam est un UUID aléatoire stocké en
+  localStorage (pas de fingerprinting navigateur). Il est comparé/rate-limité
+  côté serveur mais jamais renvoyé par l'API : omis par défaut au niveau du
+  client Prisma (`lib/prisma.ts`), même sur les endpoints admin.
 - Le token admin est comparé en temps constant (`crypto.timingSafeEqual`) et
   n'est jamais renvoyé par les endpoints publics.
-- Rate limiting en mémoire (1 question / 30 s par appareil), suffisant pour
-  un MVP mono-instance ; à remplacer par un store partagé (Redis) en cas de
-  déploiement multi-instance.
+- Anti-doublon de questions et rate limiting de soumission (1 question / 30 s
+  par appareil) reposent sur un verrou consultatif Postgres
+  (`pg_advisory_xact_lock`, par événement) plutôt qu'un mutex en mémoire :
+  correct même en déploiement serverless multi-instance (Vercel), pas
+  seulement en mono-instance. Le rate limit de vote (1 vote / s par question)
+  reste en mémoire par process — simple anti-rebond UI, sans enjeu de
+  fiabilité puisque le double-vote réel est de toute façon bloqué par une
+  contrainte unique en base (`Vote.questionId + fingerprint`).
+- Le fingerprint étant entièrement fourni par le client, ces protections
+  restent contournables par un appel direct à l'API avec un fingerprint
+  différent à chaque requête. Un rate limiting par IP a été envisagé mais
+  écarté : lors d'un meetup, de nombreux participants légitimes partagent la
+  même IP (Wi-Fi de la salle), ce qui créerait plus de faux positifs que de
+  protection réelle.
 - Suppression définitive d'un événement (et de toutes ses données) disponible
   depuis l'admin.
