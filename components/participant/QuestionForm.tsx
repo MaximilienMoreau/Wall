@@ -48,7 +48,9 @@ export function QuestionForm({
       }
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        showToast(data?.error || "Impossible d'envoyer la question.", "error");
+        const fieldError =
+          data?.details?.fieldErrors?.content?.[0] || data?.details?.fieldErrors?.authorName?.[0];
+        showToast(fieldError || data?.error || "Impossible d'envoyer la question.", "error");
         return;
       }
 

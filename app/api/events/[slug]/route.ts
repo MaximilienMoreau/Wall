@@ -101,6 +101,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     allowAnonymous: updated.allowAnonymous,
     autoApprove: updated.autoApprove,
     autoClusterEnabled: updated.autoClusterEnabled,
+    createdAt: updated.createdAt,
     closesAt: updated.closesAt,
   });
 }

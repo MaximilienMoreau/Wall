@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { isValidAdminToken } from "@/lib/admin-auth";
 import { getAdminTokenFromRequest } from "@/lib/admin-request";
 import { clusterEventQuestions } from "@/lib/clustering";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ slug: string }> };
+
+// Anti-spam : chaque appel a un coût réel (appel API Anthropic facturé), contrairement
+// aux autres routes admin qui ne font que lire/écrire en base.
+const CLUSTER_RATE_LIMIT_WINDOW_MS = 10_000;
 
 // POST /api/events/[slug]/cluster : déclenche le regroupement IA (admin uniquement).
 export async function POST(req: NextRequest, { params }: Params) {
@@ -23,6 +28,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY non configurée sur le serveur" },
       { status: 503 }
+    );
+  }
+
+  const rate = checkRateLimit(`cluster:${event.id}`, CLUSTER_RATE_LIMIT_WINDOW_MS);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Merci de patienter avant de relancer le regroupement IA", retryAfterMs: rate.retryAfterMs },
+      { status: 429 }
     );
   }
 
