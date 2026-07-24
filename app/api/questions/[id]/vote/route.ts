@@ -64,7 +64,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       typeof err === "object" && err !== null && "code" in err && err.code === "P2002";
     if (isUniqueConflict) {
       // Déjà voté : on renvoie l'état actuel sans re-compter (idempotent).
-      return NextResponse.json({ votes: question.votes, alreadyVoted: true });
+      // Re-fetch nécessaire : `question` a été lu avant la transaction et peut être périmé.
+      const current = await prisma.question.findUnique({ where: { id } });
+      return NextResponse.json({ votes: current?.votes ?? question.votes, alreadyVoted: true });
     }
     console.error("Erreur vote", err);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

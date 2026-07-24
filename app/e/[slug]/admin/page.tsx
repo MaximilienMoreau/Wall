@@ -233,8 +233,8 @@ export default function AdminPage() {
         "success"
       );
       refetch();
-    } catch {
-      showToast("Échec du regroupement IA.", "error");
+    } catch (err) {
+      showToast(err instanceof AdminApiError ? err.message : "Échec du regroupement IA.", "error");
     } finally {
       setClustering(false);
     }
